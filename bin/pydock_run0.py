@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 import sys
 import argparse
-from pvsdock import pydock as pydock
+from pvsdock import pydock0 as pydock
 import pandas as pd
 # import modin.pandas as pd
-from pvsdock import mci_module
 
 
 class LoadFromConfig(argparse.Action):
@@ -32,10 +31,8 @@ def parser_arg(parser):
     parser.add_argument('-v', '--docking_program', type=str, required=False,
                         default='rbdock',
                         help='select rdock, rbdock')
-    parser.add_argument('--use_mci', action='store_true', required=False,
-                        default=False, help='use_mci')
-    parser.add_argument('--neutralize', action='store_true', required=False,
-                        default=False, help='neutralize smiles')
+    parser.add_argument('--neutralize', action='store_true',
+                        required=False, help='neutralize smiles ')
     parser.add_argument('--pH', type=float, default=None,
                         required=False, help='protonate state for pH 7.4 ')
     parser.add_argument('--output_save', action='store_true', required=False,
@@ -76,12 +73,6 @@ def parser_arg(parser):
 
 
 def arg_to_params(parser):
-
-    use_mci_module = False
-    for i, m in enumerate(sys.argv):
-        if m == '--use_mci':
-            use_mci_module = True
-            mci_module.parser_arg(parser)
 
     args = parser.parse_args()
 
@@ -132,11 +123,6 @@ def arg_to_params(parser):
     docking_params['tether_ref_coor_file'] = tether_ref_coor_file
     docking_params['exhaustiveness'] = exhaustiveness
 
-    docking_params['use_mci_module'] = use_mci_module
-
-    if use_mci_module:
-        docking_params = mci_module.arg_to_params(parser, docking_params)
-
     return args, docking_params
 
 
@@ -183,11 +169,6 @@ def main():
     if docking_params['rescoring']:
         rescoring = result_dict['docking_re']
         df['Docking_re'] = rescoring
-
-    use_mci_module = docking_params['use_mci_module']
-
-    if use_mci_module:
-        mci_module.mci_score_to_df(df, docking_params, result_dict)
 
     df.to_pickle(output_file)
 

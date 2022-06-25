@@ -2,11 +2,10 @@
 import sys
 import os
 import argparse
-from pvsdock import pydock as pydock
+from pvsdock import pydock_myd as pydock
 from filelock import FileLock
 import pandas as pd
 # import modin.pandas as pd
-from pvsdock import mci_module
 
 
 def get_job_from_list(list_dir):
@@ -94,11 +93,15 @@ def run_docking(job_idx, docking, params_dict):
         rescoring = result_dict['docking_re']
         df['Docking_re'] = rescoring
 
-    use_mci_module = params_dict['use_mci_module']
+    use_my_module = params_dict['use_my_module']
+    my_module_path = params_dict['my_module_path']
     docking_params = params_dict['docking_params']
 
-    if use_mci_module:
-        mci_module.mci_score_to_df(df, docking_params, result_dict)
+    if use_my_module:
+        my_module_dir = os.path.dirname(my_module_path)
+        sys.path.append(my_module_dir)
+        import my_module
+        my_module.my_score_to_df(df, docking_params, result_dict)
 
     df.to_pickle(job_done_file)
 
@@ -186,10 +189,11 @@ def parser_arg(parser):
     parser.add_argument('-v', '--docking_program', type=str, required=False,
                         default='rbdock',
                         help='select rdock, rbdock')
-    parser.add_argument('--use_mci', action='store_true', required=False,
-                        default=False, help='use_mci')
-    parser.add_argument('--neutralize', action='store_true', required=False,
-                        default=False, help='neutralize smiles')
+    parser.add_argument('--my_module', type=str, required=False,
+                        default=None,
+                        help='set user python module path (for pifinder)')
+    parser.add_argument('--neutralize', action='store_true',
+                        required=False, help='neutralize smiles ')
     parser.add_argument('--pH', type=float, default=None,
                         required=False, help='protonate state for pH 7.4 ')
     parser.add_argument('--output_save', action='store_true', required=False,
@@ -231,11 +235,15 @@ def parser_arg(parser):
 
 def arg_to_params(parser):
 
-    use_mci_module = False
+    use_my_module = False
     for i, m in enumerate(sys.argv):
-        if m == '--use_mci':
-            use_mci_module = True
-            mci_module.parser_arg(parser)
+        if m == '--my_module':
+            my_module_path = sys.argv[i+1]
+            use_my_module = True
+            my_module_dir = os.path.dirname(my_module_path)
+            sys.path.append(my_module_dir)
+            import my_module
+            my_module.parser_arg(parser)
 
     args = parser.parse_args()
 
@@ -286,10 +294,12 @@ def arg_to_params(parser):
     docking_params['tether_ref_coor_file'] = tether_ref_coor_file
     docking_params['exhaustiveness'] = exhaustiveness
 
-    docking_params['use_mci_module'] = use_mci_module
+    my_module_path = args.my_module
+    docking_params['use_my_module'] = use_my_module
+    docking_params['my_module_path'] = my_module_path
 
-    if use_mci_module:
-        docking_params = mci_module.arg_to_params(parser, docking_params)
+    if use_my_module:
+        docking_params = my_module.arg_to_params(parser, docking_params)
 
     return args, docking_params
 
@@ -335,7 +345,8 @@ def main():
     params_dict['log_file'] = log_file
 
     params_dict['rescoring'] = docking_params['rescoring']
-    params_dict['use_mci_module'] = docking_params['use_mci_module']
+    params_dict['use_my_module'] = docking_params['use_my_module']
+    params_dict['my_module_path'] = docking_params['my_module_path']
     params_dict['docking_params'] = docking_params
 
     working(docking, params_dict)

@@ -9,7 +9,6 @@ import subprocess
 import argparse
 from pbi import ligandtools
 from pvsdock import sdtether
-from pvsdock import mci_module
 
 
 class Docking(object):
@@ -59,11 +58,6 @@ class Docking(object):
                 os.makedirs(self.dock_dir)
             except FileExistsError as e:
                 print(e, flush=True)
-
-        self.use_mci_module = docking_params['use_mci_module']
-        if self.use_mci_module:
-            self.mci_class = mci_module.mci_class
-            self.mci_class.__init__(self, docking_params)
 
         self.rescoring = docking_params['rescoring']
         self.rescoring_program = docking_params['rescoring_program']
@@ -361,7 +355,7 @@ class Docking(object):
             print(e, 'docking', idx, mol_id, smi_p, flush=True)
             return result_dict
         result_dict['docking'] = docking_score
-        if self.output_save or self.rescoring or self.use_mci_module:
+        if self.output_save or self.rescoring:
             if self.dp == 'vina':
                 ligandtools.pdbqt_to_pdb_ref(docking_pdbqt_file,
                                              docking_pdb_file,
@@ -377,11 +371,6 @@ class Docking(object):
                 docking_rescore = np.array([99.999], dtype=np.float32)
                 print(e, 're-scoring', idx, mol_id, smi_p, flush=True)
             result_dict['docking_re'] = docking_rescore
-
-        if self.use_mci_module:
-            self.mci_class.simulation_process(self, idx, mol_id, smi, smi_p,
-                                              pid, out_dock_dir1,
-                                              docking_pdb_file, result_dict)
 
         return result_dict
 
@@ -474,9 +463,6 @@ class Docking(object):
         if self.rescoring:
             result_dict['docking_re'] = docking_re_list
 
-        if self.use_mci_module:
-            self.mci_class.predict(self, smiles_list, result_dict, return_dict)
-
         return result_dict
 
 
@@ -505,8 +491,6 @@ def parser_arg(parser):
     parser.add_argument('-v', '--docking_program', type=str, required=False,
                         default='rbdock',
                         help='select rdock, rbdock')
-    parser.add_argument('--mci_module', action='store_ture', required=False,
-                        default=False, help='use mci_module')
     parser.add_argument('--neutralize', action='store_true',
                         required=False, help='neutralize smiles ')
     parser.add_argument('--pH', type=float, default=None,
@@ -549,12 +533,6 @@ def parser_arg(parser):
 
 
 def arg_to_params(parser):
-
-    use_mci_module = False
-    for i, m in enumerate(sys.argv):
-        if m == '--mci_module':
-            use_mci_module = True
-            mci_module.parser_arg(parser)
 
     args = parser.parse_args()
 
@@ -604,12 +582,5 @@ def arg_to_params(parser):
     docking_params['tether_SMARTS'] = tether_SMARTS
     docking_params['tether_ref_coor_file'] = tether_ref_coor_file
     docking_params['exhaustiveness'] = exhaustiveness
-
-    mci_module_path = args.mci_module
-    docking_params['use_mci_module'] = use_mci_module
-    docking_params['mci_module_path'] = mci_module_path
-
-    if use_mci_module:
-        docking_params = mci_module.arg_to_params(parser, docking_params)
 
     return args, docking_params

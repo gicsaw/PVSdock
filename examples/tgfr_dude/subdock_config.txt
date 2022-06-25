@@ -1,0 +1,12 @@
+--docking_program=qvina02
+--dock_config=config.txt
+--timeout_gen3d=10
+--timeout_dock=960
+--output_save
+--gen3d_dir=gen3d
+--dock_dir=docking
+--tlen=7
+--neutralize
+--pH=7.4
+--pf_receptor=pdb/3HMMA_pf_receptor.txt
+--pf_receptor_info=pdb/3HMMA_pf_receptor_info.txt

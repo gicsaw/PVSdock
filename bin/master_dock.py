@@ -5,8 +5,8 @@ import numpy as np
 import argparse
 import time
 from filelock import FileLock
-#import pandas as pd
-import modin.pandas as pd
+import pandas as pd
+# import modin.pandas as pd
 import subprocess
 
 
@@ -97,7 +97,7 @@ def write_stage(stage_list, stage_file):
     fp_stage.close()
 
 
-def check_done(params_dict, iteration):
+def check_done(params_dict):
 
     check = False
     master_dir = params_dict['master_dir']
@@ -114,7 +114,7 @@ def check_done(params_dict, iteration):
     return check
 
 
-def gather_result(params_dict, iteration):
+def gather_result(params_dict):
 
     master_dir = params_dict['master_dir']
     done_dir = params_dict['done_dir']
@@ -129,7 +129,8 @@ def gather_result(params_dict, iteration):
         df_docking = pd.read_pickle(docking_smi_file)
         all_data.append(df_docking)
     done_job_idx_list = get_job_list(done_dir)
-    for job_idx in done_job_idx_list:
+    for idx in done_job_idx_list:
+        job_idx = '%d' % (idx)
         job_done_file = done_dir + '/' + job_idx + '.pkl'
         df_done = pd.read_pickle(job_done_file)
 
@@ -152,6 +153,7 @@ def gapjil(params_dict):
 
     stage_file = master_dir + '/' + 'stage.txt'
 
+    stage_list = []
     check_stage = None
     if os.path.exists(stage_file):
         stage_list = [x.strip() for x in open(stage_file)]
@@ -189,10 +191,10 @@ def gapjil(params_dict):
             line_out = '%d sub_dock_batch is submitted' % num_sub
             print(line_out, flush=True)
 
-    while True:
-
+    while check_stage != 'done':
         check_docking = check_done(params_dict)
         if check_docking:
+            check_stage = 'done'
             stage_list += ['done']
             write_stage(stage_list, stage_file)
             break

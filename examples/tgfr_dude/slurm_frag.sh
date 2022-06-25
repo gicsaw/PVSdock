@@ -20,7 +20,7 @@ echo NPROCS=$NPROCS
 #echo NPROCS=$NPROCS
 
 source activate ml
-sub_dock.py --arg_file subdock_config.txt --dock_config config.txt --use_mci --num_sub_proc=$NPROCS --out_log print
 
+python -u fragment.py
 
 date
